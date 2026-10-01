@@ -1,5 +1,7 @@
 extends RigidBody2D
 func _ready():
+	add_to_group("mobs")
+
 	var mob_types = Array(
 		$AnimatedSprite2D.sprite_frames.get_animation_names()
 	)
