@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://knife.gd" id="1_knife"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_knife"]
+size = Vector2(72, 14)
+
+[node name="Knife" type="Area2D"]
+collision_layer = 8
+collision_mask = 1
+monitoring = true
+monitorable = true
+script = ExtResource("1_knife")
+
+[node name="Glow" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(43, -12, 94, -12, 116, 0, 94, 12, 43, 12)
+color = Color(0.15, 0.8, 1, 0.35)
+
+[node name="Blade" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(45, -6, 92, -6, 110, 0, 92, 6, 45, 6)
+color = Color(0.75, 0.95, 1, 1)
+
+[node name="Edge" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(48, -2, 100, -2, 110, 0, 100, 2, 48, 2)
+color = Color(0.1, 0.55, 0.95, 1)
+
+[node name="Handle" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(5, -8, 45, -8, 45, 8, 5, 8)
+color = Color(0.18, 0.22, 0.3, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(77, 0)
+shape = SubResource("RectangleShape2D_knife")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

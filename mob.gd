@@ -1,4 +1,7 @@
 extends RigidBody2D
+
+signal defeated
+
 func _ready():
 	add_to_group("mobs")
 

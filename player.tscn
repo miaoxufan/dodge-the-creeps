@@ -51,12 +51,10 @@ position = Vector2(200, 200)
 script = ExtResource("1_sweqy")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=504788204]
-position = Vector2(200, 200)
 sprite_frames = SubResource("SpriteFrames_wvhbo")
 animation = &"right"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1315492126]
-position = Vector2(198, 198)
 shape = SubResource("CapsuleShape2D_ifow5")
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
