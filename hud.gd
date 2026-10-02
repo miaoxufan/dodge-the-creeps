@@ -9,6 +9,9 @@ var selected_hero_id = 1
 var persistence_enabled = true
 var portrait_tween: Tween
 var menu_clock = 0.0
+var pause_overlay: Control
+var pause_was_active := false
+var pause_previous_focus: Control
 
 func _process(delta):
 	menu_clock += delta
@@ -27,11 +30,13 @@ func _process(delta):
 		var p = main.get_node("Player")
 		$StatusHint.text = "SPACE 闪步   %d / %d     ·     WASD 移动" % [p.dash_charges,p.dash_max_charges]
 	else:
-		$StatusHint.text = "WASD 移动   ·   收集蓝色灵石以解锁闪步"
+		$StatusHint.text = "WASD 移动   ·   ESC 暂停   ·   收集蓝色灵石以解锁闪步"
 
 func _ready():
 	preload("res://ui_skin.gd").apply(self)
+	_build_pause_menu()
 	$MessageTimer.one_shot = true
+	$MessageTimer.process_mode = Node.PROCESS_MODE_PAUSABLE
 	get_viewport().size_changed.connect(_fit_ui)
 	_fit_ui()
 	load_leaderboard()
@@ -45,8 +50,84 @@ func _fit_ui():
 	for node in [$StartBackdrop,$ModalDim]:
 		node.position = -offset / factor
 		node.size = viewport_size / factor
+	if is_instance_valid(pause_overlay):
+		pause_overlay.get_node("Shade").position = -offset / factor
+		pause_overlay.get_node("Shade").size = viewport_size / factor
+
+func _build_pause_menu():
+	var skin = preload("res://ui_skin.gd")
+	pause_overlay = Control.new()
+	pause_overlay.name = "PauseMenu"
+	pause_overlay.size = Vector2(1280, 720)
+	add_child(pause_overlay)
+	var shade = ColorRect.new()
+	shade.name = "Shade"
+	shade.color = Color(0.08, 0.06, 0.04, 0.72)
+	pause_overlay.add_child(shade)
+	var panel = Panel.new()
+	panel.name = "Panel"
+	pause_overlay.add_child(panel)
+	skin.place(panel, Rect2(420, 190, 440, 340))
+	panel.add_theme_stylebox_override("panel", skin.box(skin.PAPER, skin.GOLD, 12))
+	var title = skin.label(panel, "Title", "旅途小憩", Rect2(30, 30, 380, 45), 30, skin.INK)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var hint = skin.label(panel, "Hint", "游戏已暂停  ·  ESC 继续", Rect2(30, 85, 380, 30), 18, skin.MUTED)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	for i in range(2):
+		var button = Button.new()
+		button.name = "Resume" if i == 0 else "Quit"
+		button.text = "继续游戏" if i == 0 else "退出游戏"
+		panel.add_child(button)
+		skin.place(button, Rect2(60, 140 + i * 80, 320, 58))
+		skin.button(button, i == 0)
+		button.pressed.connect(close_pause_menu if i == 0 else quit_from_pause)
+		var other = NodePath("../Quit" if i == 0 else "../Resume")
+		button.focus_next = other
+		button.focus_previous = other
+		button.focus_neighbor_top = other
+		button.focus_neighbor_bottom = other
+	pause_overlay.hide()
+
+func _input(event):
+	if event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed and not event.echo:
+		if pause_overlay.visible:
+			close_pause_menu()
+		elif not $StartBackdrop.visible and not get_parent().get("game_finished"):
+			open_pause_menu()
+		else:
+			return
+		get_viewport().set_input_as_handled()
+
+func open_pause_menu():
+	if pause_overlay.visible or $StartBackdrop.visible or get_parent().get("game_finished"):
+		return
+	pause_was_active = get_tree().paused
+	pause_previous_focus = get_viewport().gui_get_focus_owner()
+	get_tree().paused = true
+	pause_overlay.show()
+	pause_overlay.get_node("Panel/Resume").grab_focus()
+
+func close_pause_menu():
+	if not pause_overlay.visible:
+		return
+	pause_overlay.hide()
+	get_tree().paused = pause_was_active
+	if is_instance_valid(pause_previous_focus) and pause_previous_focus.is_visible_in_tree():
+		pause_previous_focus.grab_focus()
+	else:
+		get_viewport().gui_release_focus()
+
+func quit_from_pause():
+	# Explicit exit ends the current run and preserves its score once.
+	var main = get_parent()
+	if not main.game_finished:
+		record_score(main.score)
+		main.game_finished = true
+	get_tree().quit()
 
 func set_start_screen(show_start):
+	if is_instance_valid(pause_overlay) and pause_overlay.visible:
+		close_pause_menu()
 	$HeroArt.visible = show_start
 	$XPBar.visible = not show_start
 	$SkillBar.visible = not show_start

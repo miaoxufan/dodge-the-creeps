@@ -16,5 +16,3 @@ color = Color(0.15, 0.55, 1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_orb")
-
-[connection signal="area_entered" from="." to="." method="_on_area_entered"]

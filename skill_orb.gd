@@ -17,8 +17,10 @@ func _draw():
 	draw_circle(Vector2(-2,-2),2.5,Color("d4f4fb"))
 
 
-func _on_area_entered(area):
-	if area.is_in_group("player") and not collected:
-		collected = true
-		get_tree().current_scene._on_skill_orb_collected()
-		queue_free()
+func try_collect() -> bool:
+	if collected or is_queued_for_deletion():
+		return false
+	collected = true
+	hide()
+	queue_free()
+	return true

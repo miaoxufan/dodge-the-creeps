@@ -211,18 +211,17 @@ func _on_mob_defeated():
 	$HUD.update_level(level, experience, experience_to_next_level)
 
 
-func _on_skill_orb_collected():
-	if game_finished:
+func _on_skill_orb_collected(amount: int = 1):
+	if game_finished or amount <= 0:
 		return
-	skill_points += 1
-	$HUD.update_skill_points(skill_points, skill_points_to_next_level)
+	skill_points += amount
 
-	if skill_points >= skill_points_to_next_level:
+	while skill_points >= skill_points_to_next_level:
 		skill_points -= skill_points_to_next_level
 		skill_level += 1
 		skill_points_to_next_level += 15
-		$HUD.update_skill_points(skill_points, skill_points_to_next_level)
 		queue_upgrade(true)
+	$HUD.update_skill_points(skill_points, skill_points_to_next_level)
 
 func queue_upgrade(is_skill: bool):
 	pending_upgrades.append(is_skill)
