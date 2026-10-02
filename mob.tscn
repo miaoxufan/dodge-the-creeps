@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://rck7aaobtcy5"]
 
 [ext_resource type="Script" uid="uid://5j22idrkui6k" path="res://mob.gd" id="1_1qmh0"]
-[ext_resource type="Texture2D" uid="uid://cak87kaua6ffd" path="res://art/enemyFlyingAlt_1.png" id="1_b3mxk"]
-[ext_resource type="Texture2D" uid="uid://blhc41wktmlx3" path="res://art/enemyFlyingAlt_2.png" id="2_1qmh0"]
-[ext_resource type="Texture2D" uid="uid://b11p5c7rfulq5" path="res://art/enemySwimming_1.png" id="3_gfurk"]
-[ext_resource type="Texture2D" uid="uid://dw736mf5lga4y" path="res://art/enemySwimming_2.png" id="4_ieysi"]
-[ext_resource type="Texture2D" uid="uid://bhi3451jxs5p0" path="res://art/enemyWalking_1.png" id="5_cixyi"]
-[ext_resource type="Texture2D" uid="uid://c2ulwsjkgfcbl" path="res://art/enemyWalking_2.png" id="6_7ulmv"]
+[ext_resource type="Texture2D" path="res://art/enemies/ghost.png" id="1_b3mxk"]
+[ext_resource type="Texture2D" path="res://art/enemies/ghost.png" id="2_1qmh0"]
+[ext_resource type="Texture2D" path="res://art/enemies/bramble.png" id="3_gfurk"]
+[ext_resource type="Texture2D" path="res://art/enemies/bramble.png" id="4_ieysi"]
+[ext_resource type="Texture2D" path="res://art/enemies/mushroom.png" id="5_cixyi"]
+[ext_resource type="Texture2D" path="res://art/enemies/mushroom.png" id="6_7ulmv"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_jfba5"]
 animations = [{
@@ -45,20 +45,23 @@ animations = [{
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pcqmr"]
-radius = 86.0
-height = 176.0
+radius = 28.0
+height = 56.0
 
 [node name="Mob" type="RigidBody2D" unique_id=1794106031]
+gravity_scale = 0.0
+collision_mask = 0
 script = ExtResource("1_1qmh0")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1725332342]
-position = Vector2(1, -5)
+position = Vector2(0, 0)
+scale = Vector2(0.075, 0.075)
+texture_filter = 4
 sprite_frames = SubResource("SpriteFrames_jfba5")
 animation = &"fly"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1654361035]
-position = Vector2(-7, -7)
-rotation = 1.5707964
+position = Vector2(0, 0)
 shape = SubResource("CapsuleShape2D_pcqmr")
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="." unique_id=1685931726]

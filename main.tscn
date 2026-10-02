@@ -18,7 +18,7 @@ mob_scene = ExtResource("2_h2yge")
 [node name="Player" parent="." unique_id=961709784 instance=ExtResource("1_ig7tw")]
 
 [node name="StartPosition" type="Marker2D" parent="." unique_id=527952194]
-position = Vector2(240, 60)
+position = Vector2(800, 450)
 
 [node name="MobPath" type="Path2D" parent="." unique_id=1084397879]
 curve = SubResource("Curve2D_ig7tw")
@@ -28,6 +28,7 @@ position = Vector2(1137, 0)
 rotation = 1.5613774
 
 [node name="StartTimer" type="Timer" parent="." unique_id=1754657735]
+one_shot = true
 
 [node name="ScoreTimer" type="Timer" parent="." unique_id=699540012]
 

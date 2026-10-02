@@ -33,6 +33,19 @@ var back_knife_count = 0
 var knife_speed = 5.5
 var knife_orbit_radius = 55.0
 var knives = []
+var flask_radius = 105.0
+var flask_interval = 1.4
+var flask_count = 1
+var next_flask_radius_multiplier = 1.0
+var next_flask_speed_multiplier = 1.0
+var pending_upgrades: Array[bool] = []
+
+func _ready():
+	var backdrop = preload("res://arena_backdrop.gd").new()
+	add_child(backdrop)
+	$StartTimer.one_shot = true
+	$Player.hide()
+	$Player/CollisionShape2D.set_deferred("disabled", true)
 
 
 func _process(delta):
@@ -46,15 +59,27 @@ func _process(delta):
 
 	attack_cooldown -= delta
 	if attack_cooldown <= 0.0:
-		shoot_in_move_direction()
-		attack_cooldown = attack_interval
+		if active_hero_id == 3:
+			throw_flasks()
+			attack_cooldown = flask_interval
+		else:
+			shoot_in_move_direction()
+			attack_cooldown = attack_interval
 
 
 func new_game():
 	get_tree().paused = false
 	active_hero_id = $HUD.get_selected_hero_id()
 	clear_knives()
+	get_tree().call_group("projectiles", "queue_free")
+	pending_upgrades.clear()
+	flask_radius = 105.0
+	flask_interval = 1.4
+	flask_count = 1
+	next_flask_radius_multiplier = 1.0
+	next_flask_speed_multiplier = 1.0
 	score = 0
+	spawn_index = 0
 	skill_points = 0
 	skill_level = 0
 	skill_points_to_next_level = 15
@@ -83,6 +108,10 @@ func new_game():
 	$MobTimer.wait_time = 0.5
 	$Player.scale = Vector2.ONE
 	$Player.reset_dash()
+	$Player.speed = 400
+	$Player.modulate = Color.WHITE
+	$Player.set_hero(active_hero_id)
+	$StartPosition.position = get_viewport().get_visible_rect().size * 0.5
 
 	$Player.start($StartPosition.position)
 	if active_hero_id == 2:
@@ -99,7 +128,7 @@ func new_game():
 	$HUD.update_lives(lives)
 	$HUD.hide_upgrade_choices()
 	$HUD/MessageTimer.wait_time = 3.0
-	$HUD.show_message("Get Ready")
+	$HUD.show_message("准备出发 · 3 秒保护")
 
 	get_tree().call_group("mobs", "queue_free")
 	get_tree().call_group("skill_orbs", "queue_free")
@@ -111,11 +140,13 @@ func game_over():
 	game_finished = true
 	get_tree().paused = false
 	game_active = false
+	$StartTimer.stop()
 	$ScoreTimer.stop()
 	$MobTimer.stop()
 	$Player.hide()
 	$Player.get_node("CollisionShape2D").set_deferred("disabled", true)
 	clear_knives()
+	get_tree().call_group("projectiles", "queue_free")
 	$HUD.record_score(score)
 	$HUD.show_game_over()
 
@@ -146,9 +177,12 @@ func shoot_in_move_direction():
 
 
 func _on_start_timer_timeout():
+	if game_finished:
+		return
 	game_active = true
 	invulnerability_time_left = 0.0
 	$HUD/MessageTimer.wait_time = 2.0
+	$HUD/Message.hide()
 	$ScoreTimer.start()
 	$MobTimer.start()
 
@@ -162,6 +196,8 @@ func _on_score_timer_timeout():
 
 
 func _on_mob_defeated():
+	if game_finished:
+		return
 	experience += 1
 	score += 1
 	$HUD.update_score(score)
@@ -170,18 +206,14 @@ func _on_mob_defeated():
 		experience = 0
 		level += 1
 		experience_to_next_level += 3
-		game_active = false
-		$MobTimer.stop()
-		$ScoreTimer.stop()
-		get_tree().paused = true
-		var choices = ["multishot", "speed", "bullet", "small", "life"]
-		choices.shuffle()
-		$HUD.show_upgrade_choices(choices.slice(0, 3), false)
+		queue_upgrade(false)
 
 	$HUD.update_level(level, experience, experience_to_next_level)
 
 
 func _on_skill_orb_collected():
+	if game_finished:
+		return
 	skill_points += 1
 	$HUD.update_skill_points(skill_points, skill_points_to_next_level)
 
@@ -190,15 +222,26 @@ func _on_skill_orb_collected():
 		skill_level += 1
 		skill_points_to_next_level += 15
 		$HUD.update_skill_points(skill_points, skill_points_to_next_level)
-		game_active = false
-		$MobTimer.stop()
-		$ScoreTimer.stop()
-		get_tree().paused = true
-		var choices = ["skill_multishot", "skill_speed", "skill_bullet", "skill_small", "skill_dash"]
-		if active_hero_id == 2:
-			choices.append("skill_knife_count")
-		choices.shuffle()
-		$HUD.show_upgrade_choices(choices.slice(0, 3), true)
+		queue_upgrade(true)
+
+func queue_upgrade(is_skill: bool):
+	pending_upgrades.append(is_skill)
+	if pending_upgrades.size() == 1:
+		present_upgrade()
+
+func present_upgrade():
+	game_active = false
+	$MobTimer.stop()
+	$ScoreTimer.stop()
+	get_tree().paused = true
+	var is_skill = pending_upgrades[0]
+	var choices = ["skill_multishot", "skill_speed", "skill_bullet", "skill_small", "skill_dash"] if is_skill else ["multishot", "speed", "bullet", "small", "life"]
+	if is_skill and active_hero_id == 2:
+		choices.append("skill_knife_count")
+	if is_skill and active_hero_id == 3:
+		choices.append("skill_flask_count")
+	choices.shuffle()
+	$HUD.show_upgrade_choices(choices.slice(0, 3), is_skill)
 
 
 func _on_upgrade_selected(choice):
@@ -206,10 +249,14 @@ func _on_upgrade_selected(choice):
 	invulnerability_time_left = 1.0
 
 	if choice == "skill_multishot":
-		if active_hero_id == 2:
+		if active_hero_id == 3:
+			next_flask_radius_multiplier = 2.0
+		elif active_hero_id == 2:
 			next_knife_range_upgrade_multiplier = 2.0
 		else:
 			back_bullet_count += 1
+	elif choice == "skill_flask_count":
+		flask_count += 1
 	elif choice == "skill_knife_count":
 		if active_hero_id == 2:
 			back_knife_count += 1
@@ -217,7 +264,9 @@ func _on_upgrade_selected(choice):
 	elif choice == "skill_speed":
 		next_move_upgrade_multiplier = 2.0
 	elif choice == "skill_bullet":
-		if active_hero_id == 2:
+		if active_hero_id == 3:
+			next_flask_speed_multiplier = 2.0
+		elif active_hero_id == 2:
 			next_knife_speed_upgrade_multiplier = 2.0
 		else:
 			next_bullet_upgrade_multiplier = 2.0
@@ -226,7 +275,10 @@ func _on_upgrade_selected(choice):
 	elif choice == "skill_dash":
 		$Player.unlock_dash(1)
 	elif choice == "multishot":
-		if active_hero_id == 2:
+		if active_hero_id == 3:
+			flask_radius += 22.0 * next_flask_radius_multiplier
+			next_flask_radius_multiplier = 1.0
+		elif active_hero_id == 2:
 			knife_orbit_radius += 45.0 * next_knife_range_upgrade_multiplier
 			next_knife_range_upgrade_multiplier = 1.0
 			rebuild_knives()
@@ -236,7 +288,10 @@ func _on_upgrade_selected(choice):
 		$Player.speed += int(50 * next_move_upgrade_multiplier)
 		next_move_upgrade_multiplier = 1.0
 	elif choice == "bullet":
-		if active_hero_id == 2:
+		if active_hero_id == 3:
+			flask_interval = maxf(0.35, flask_interval - 0.15 * next_flask_speed_multiplier)
+			next_flask_speed_multiplier = 1.0
+		elif active_hero_id == 2:
 			knife_speed += 0.8 * next_knife_speed_upgrade_multiplier
 			next_knife_speed_upgrade_multiplier = 1.0
 			rebuild_knives()
@@ -250,6 +305,11 @@ func _on_upgrade_selected(choice):
 		lives += 1
 		$HUD.update_lives(lives)
 
+	if not pending_upgrades.is_empty():
+		pending_upgrades.pop_front()
+	if not pending_upgrades.is_empty():
+		present_upgrade()
+		return
 	game_active = true
 	$ScoreTimer.start()
 	$MobTimer.start()
@@ -266,20 +326,26 @@ func rebuild_knives():
 	if active_hero_id != 2:
 		return
 	clear_knives()
-	var total_front = max(front_knife_count, 1)
-	for index in range(front_knife_count):
+	var total = max(front_knife_count + back_knife_count, 1)
+	for index in range(total):
 		var blade = knife_scene.instantiate()
 		add_child(blade)
-		blade.setup($Player, TAU * index / total_front, knife_speed, knife_orbit_radius)
+		blade.setup($Player, TAU * index / total, knife_speed, knife_orbit_radius)
 		knives.append(blade)
 
-	if back_knife_count > 0:
-		for index in range(back_knife_count):
-			var blade = knife_scene.instantiate()
-			add_child(blade)
-			var angle = PI + TAU * index / back_knife_count
-			blade.setup($Player, angle, knife_speed, knife_orbit_radius)
-			knives.append(blade)
+func throw_flasks():
+	var targets = get_tree().get_nodes_in_group("mobs").filter(func(m): return not m.is_queued_for_deletion())
+	targets.sort_custom(func(a,b): return a.position.distance_squared_to($Player.position) < b.position.distance_squared_to($Player.position))
+	for i in range(flask_count):
+		var flask = preload("res://alchemy_flask.gd").new()
+		flask.position = $Player.position
+		flask.target = $Player.position + $Player.last_direction.rotated(i*0.4) * 220.0
+		if not targets.is_empty():
+			var target = targets[i % targets.size()]
+			flask.target = target.position + target.linear_velocity * 0.3
+		flask.target = flask.target.clamp(Vector2(25,105),get_viewport().get_visible_rect().size-Vector2(25,25))
+		flask.blast_radius = flask_radius
+		add_child(flask)
 
 
 func _on_mob_timer_timeout():
@@ -299,7 +365,7 @@ func _on_mob_timer_timeout():
 	var speed = randf_range(150 + speed_bonus, 250 + speed_bonus)
 
 	mob.linear_velocity = direction * speed
-	mob.rotation = direction.angle()
+	mob.rotation = 0.0
 	mob.defeated.connect(_on_mob_defeated)
 
 	add_child(mob)
@@ -308,8 +374,8 @@ func _on_mob_timer_timeout():
 func _get_safe_spawn_position(screen_size, player_position, min_distance):
 	var margin = 50.0
 	var corners = [
-		Vector2(margin, margin),
-		Vector2(screen_size.x - margin, margin),
+		Vector2(margin, 140.0),
+		Vector2(screen_size.x - margin, 140.0),
 		Vector2(screen_size.x - margin, screen_size.y - margin),
 		Vector2(margin, screen_size.y - margin)
 	]
@@ -369,7 +435,7 @@ func _get_safe_spawn_position(screen_size, player_position, min_distance):
 
 
 func _on_player_hit():
-	if hit_invulnerable or invulnerability_time_left > 0.0:
+	if not game_active or hit_invulnerable or invulnerability_time_left > 0.0:
 		return
 
 	if lives > 1:
@@ -380,7 +446,7 @@ func _on_player_hit():
 		$Player.show()
 		$Player.modulate = Color(1.0, 1.0, 1.0, 0.45)
 		$Player.get_node("CollisionShape2D").set_deferred("disabled", true)
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(1.0, false).timeout
 		$Player.start($StartPosition.position)
 		$Player.modulate = Color.WHITE
 		hit_invulnerable = false

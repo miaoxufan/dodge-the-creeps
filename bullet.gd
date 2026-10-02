@@ -4,6 +4,16 @@ extends Area2D
 var direction = Vector2.RIGHT
 var skill_orb_scene = preload("res://skill_orb.tscn")
 
+func _ready():
+	add_to_group("projectiles")
+	z_index = 3
+	$Visual.color = Color("e9ba58")
+
+func _draw():
+	draw_circle(Vector2.ZERO, 9, Color("68482e"))
+	draw_circle(Vector2.ZERO, 7, Color("ffdf7b"))
+	draw_line(-direction*15, -direction*7, Color(0.96,0.73,0.34,0.6),3,true)
+
 
 func _process(delta):
 	position += direction * speed * delta
@@ -17,9 +27,5 @@ func _process(delta):
 
 func _on_body_entered(body):
 	if body.is_in_group("mobs"):
-		var skill_orb = skill_orb_scene.instantiate()
-		skill_orb.position = body.position
-		get_parent().add_child(skill_orb)
-		body.defeated.emit()
-		body.queue_free()
+		body.defeat()
 		queue_free()
