@@ -6,6 +6,9 @@ Godot 4.7.2，Windows / NVIDIA RTX 4070 SUPER。
 - `tests/combat_integration.gd`：三英雄实际命中 / 范围伤害、击杀掉落、玩家重叠拾取、保护期间及保护结束后的持续接触，0 失败。
 - `tests/visual_smoke.gd`：实际渲染开始菜单、第三英雄、战斗、升级与排行榜，成功；截图位于 `docs/screenshots/`。
 - Windows release 导出成功，导出程序无界面启动检查成功。
+- 导出的 Windows 程序已用 D3D12 / Forward+ 实际打开窗口并正常退出，无脚本错误。
+- `tests/responsive_visual.gd`：1280×800 与 1920×1080 两种窗口比例验证通过，背景和遮罩完整覆盖视口。
+- `tests/soak.gd`：三英雄各完成一次 4 倍时间流速的短时连续战斗测试，包含自动选择升级与重开，未出现脚本错误；分别达到等级 4 / 6 / 6。
 - `git diff --check` 无空白错误。
 
 注意：无界面工具在受限执行环境中报告 Windows 证书存储 / 编辑器设置保存权限问题；未发现游戏脚本解析错误、资源缺失或运行异常。测试关闭了排行榜持久化，避免测试分数覆盖玩家记录。

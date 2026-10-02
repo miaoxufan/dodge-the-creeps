@@ -100,6 +100,7 @@ tests/         自动化逻辑、碰撞和视觉冒烟测试
 ```powershell
 godot --headless --path . --script tests/gameplay_regression.gd
 godot --headless --path . --script tests/combat_integration.gd
+godot --headless --path . --script tests/soak.gd
 ```
 
 视觉测试 `tests/visual_smoke.gd` 需要可渲染窗口，默认把预览保存到 `D:/codex/`，不写入排行榜。
